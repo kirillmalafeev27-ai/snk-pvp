@@ -17,10 +17,16 @@ const pauseBtn = document.getElementById("pauseBtn");
 const resetSeqBtn = document.getElementById("resetSeqBtn");
 const dpadButtons = Array.from(document.querySelectorAll("[data-dir]"));
 
+const quizWrap = document.getElementById("quizWrap");
+const quizQuestion = document.getElementById("quizQuestion");
+const quizOptions = document.getElementById("quizOptions");
+const quizMeta = document.getElementById("quizMeta");
+
 let socket;
 let clientRole = "spectator";
 let gameState = null;
 let reconnectTimer = null;
+let renderedQuizId = "";
 
 const fallbackWorld = {
   width: 1350,
@@ -43,6 +49,23 @@ function isPlayerRole() {
   return clientRole === "blue" || clientRole === "yellow";
 }
 
+function getMyAnsweredFlag() {
+  if (!gameState?.quiz?.active || !isPlayerRole()) {
+    return false;
+  }
+  if (clientRole === "blue") {
+    return Boolean(gameState.quiz.answers?.blueAnswered);
+  }
+  return Boolean(gameState.quiz.answers?.yellowAnswered);
+}
+
+function sendQuizAnswer(optionIndex) {
+  if (!gameState?.quiz?.active || !isPlayerRole() || getMyAnsweredFlag()) {
+    return;
+  }
+  sendMessage({ type: "quizAnswer", optionIndex });
+}
+
 function connectWebSocket() {
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   socket = new WebSocket(`${wsProtocol}//${window.location.host}`);
@@ -62,13 +85,16 @@ function connectWebSocket() {
     if (payload.type === "welcome") {
       clientRole = payload.role || "spectator";
       updateRoleUi();
+      renderQuizPanel();
     } else if (payload.type === "role") {
       clientRole = payload.role || "spectator";
       updateRoleUi();
+      renderQuizPanel();
     } else if (payload.type === "state") {
       gameState = payload.state;
       updateHud();
       updateRoleUi();
+      renderQuizPanel();
     } else if (payload.type === "error") {
       setStatus(payload.message || "Server error.");
     } else if (payload.type === "info") {
@@ -92,6 +118,7 @@ function updateRoleUi() {
   const blueTaken = Boolean(state?.slots?.blueTaken);
   const yellowTaken = Boolean(state?.slots?.yellowTaken);
   const yellowLockedByOrder = !blueTaken && clientRole !== "yellow";
+  const quizActive = Boolean(state?.quiz?.active);
 
   pickBlueBtn.disabled = (blueTaken && clientRole !== "blue") || clientRole === "yellow";
   pickYellowBtn.disabled = ((yellowTaken && clientRole !== "yellow") || yellowLockedByOrder) || clientRole === "blue";
@@ -102,11 +129,14 @@ function updateRoleUi() {
     slotValue.textContent = `${blueTaken ? "Blue taken" : "Blue free"} | ${yellowTaken ? "Yellow taken" : "Yellow free"}`;
   }
 
-  const controlsEnabled = isPlayerRole() && state?.phase === "running";
+  const controlsEnabled = isPlayerRole()
+    && state?.phase === "running"
+    && !state?.paused
+    && !quizActive;
   speedUpBtn.disabled = !controlsEnabled;
   speedDownBtn.disabled = !controlsEnabled;
-  pauseBtn.disabled = !isPlayerRole() || !state || state.phase !== "running";
-  resetSeqBtn.disabled = !isPlayerRole();
+  pauseBtn.disabled = !isPlayerRole() || !state || state.phase !== "running" || quizActive;
+  resetSeqBtn.disabled = !isPlayerRole() || quizActive;
   for (const btn of dpadButtons) {
     btn.disabled = !controlsEnabled;
   }
@@ -117,7 +147,9 @@ function updateHud() {
     return;
   }
 
-  phaseValue.textContent = `Phase: ${gameState.phase}${gameState.paused ? " (paused)" : ""}`;
+  const quizActive = Boolean(gameState.quiz?.active);
+  const phaseSuffix = gameState.paused ? " (paused)" : quizActive ? " (quiz)" : "";
+  phaseValue.textContent = `Phase: ${gameState.phase}${phaseSuffix}`;
   levelValue.textContent = `Level ${Math.min(gameState.currentLevel + 1, gameState.levelCount)}/${gameState.levelCount}`;
   seqValue.textContent = `Sequence ${gameState.sequence.picked}/${gameState.sequence.total}`;
 
@@ -132,6 +164,51 @@ function updateHud() {
   if (gameState.message) {
     setStatus(gameState.message);
   }
+}
+
+function renderQuizPanel() {
+  const quiz = gameState?.quiz;
+  if (!quiz || !quiz.active) {
+    quizWrap.classList.add("hidden");
+    quizOptions.innerHTML = "";
+    renderedQuizId = "";
+    return;
+  }
+
+  quizWrap.classList.remove("hidden");
+  const blueAnswered = Boolean(quiz.answers?.blueAnswered);
+  const yellowAnswered = Boolean(quiz.answers?.yellowAnswered);
+  const myAnswered = getMyAnsweredFlag();
+
+  if (renderedQuizId !== quiz.id) {
+    renderedQuizId = quiz.id;
+    quizQuestion.textContent = quiz.question;
+    quizOptions.innerHTML = "";
+
+    quiz.options.forEach((option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "quiz-option-btn";
+      button.textContent = `${index + 1}. ${option}`;
+      button.addEventListener("click", () => {
+        sendQuizAnswer(index);
+      });
+      quizOptions.appendChild(button);
+    });
+  }
+
+  const canAnswer = isPlayerRole() && !myAnswered;
+  Array.from(quizOptions.querySelectorAll("button")).forEach((button) => {
+    button.disabled = !canAnswer;
+  });
+
+  const roleHint = isPlayerRole()
+    ? myAnswered
+      ? "You answered. Waiting for other player."
+      : "Choose one answer now."
+    : "Spectator mode: watch players answer.";
+
+  quizMeta.textContent = `Blue: ${blueAnswered ? "answered" : "waiting"} | Yellow: ${yellowAnswered ? "answered" : "waiting"} | ${roleHint}`;
 }
 
 function roundRect(context, x, y, width, height, radius, fill, stroke) {
@@ -247,13 +324,13 @@ function drawScene(now, world) {
 
   if (gameState && gameState.message && now < gameState.messageUntil) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
-    roundRect(ctx, world.width / 2 - 220, 32, 440, 56, 14, true, false);
+    roundRect(ctx, world.width / 2 - 260, 32, 520, 56, 14, true, false);
     ctx.fillStyle = "#2341a3";
-    roundRect(ctx, world.width / 2 - 224, 28, 440, 56, 14, true, false);
+    roundRect(ctx, world.width / 2 - 264, 28, 520, 56, 14, true, false);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 34px Manrope";
+    ctx.font = "800 31px Manrope";
     ctx.textAlign = "center";
-    ctx.fillText(gameState.message, world.width / 2, 65);
+    ctx.fillText(gameState.message, world.width / 2, 64);
     ctx.textAlign = "left";
   }
 }
@@ -331,7 +408,6 @@ function drawBottomPanel(state, world) {
 
   const blue = state.players.blue;
   const yellow = state.players.yellow;
-
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 23px Manrope";
   ctx.fillText(
@@ -381,7 +457,9 @@ function render() {
   drawSnake(state.players.yellow);
   drawBottomPanel(state, world);
 
-  if (state.phase === "waiting") {
+  if (state.quiz?.active) {
+    drawOverlayText(world, "QUIZ", "Answer in the panel below.");
+  } else if (state.phase === "waiting") {
     const needText = !state.slots.blueTaken
       ? "Waiting for Blue selection"
       : !state.slots.yellowTaken
@@ -432,6 +510,16 @@ function bindControls() {
   });
 
   window.addEventListener("keydown", (event) => {
+    if (gameState?.quiz?.active) {
+      if (isPlayerRole()) {
+        if (event.key === "1") sendQuizAnswer(0);
+        if (event.key === "2") sendQuizAnswer(1);
+        if (event.key === "3") sendQuizAnswer(2);
+        if (event.key === "4") sendQuizAnswer(3);
+      }
+      return;
+    }
+
     if (event.key === "ArrowUp" || event.key === "w" || event.key === "W") {
       sendMessage({ type: "input", action: "direction", direction: "UP" });
     } else if (event.key === "ArrowDown" || event.key === "s" || event.key === "S") {
@@ -456,4 +544,5 @@ bindControls();
 connectWebSocket();
 updateRoleUi();
 updateHud();
+renderQuizPanel();
 window.requestAnimationFrame(animate);
