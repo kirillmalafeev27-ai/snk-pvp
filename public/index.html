@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake PvP Classroom</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Russo+One&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="top-bar">
+        <div class="title">Snake PvP Classroom</div>
+        <div class="meta">
+          <span id="phaseValue">Phase: waiting</span>
+          <span id="levelValue">Level 1/4</span>
+          <span id="seqValue">Sequence 0/6</span>
+        </div>
+      </header>
+
+      <section class="selection-wrap">
+        <div class="selection-title">Role selection</div>
+        <div class="selection-row">
+          <button id="pickBlueBtn" class="pick-btn blue" type="button">Choose Blue Snake</button>
+          <button id="pickYellowBtn" class="pick-btn yellow" type="button">Choose Yellow Snake</button>
+        </div>
+        <div class="role-row">
+          <span id="roleValue">Your role: spectator</span>
+          <span id="slotValue">Blue free | Yellow free</span>
+        </div>
+      </section>
+
+      <section class="canvas-wrap">
+        <canvas id="gameCanvas" width="1350" height="900"></canvas>
+      </section>
+
+      <section class="controls-wrap">
+        <div class="speed-box">
+          <button id="speedDown" class="mini-btn" type="button">-</button>
+          <div class="speed-label">
+            Speed
+            <strong id="speedValue">-</strong>
+          </div>
+          <button id="speedUp" class="mini-btn" type="button">+</button>
+        </div>
+
+        <div class="dpad">
+          <button class="dpad-btn up" data-dir="UP" type="button">U</button>
+          <button class="dpad-btn left" data-dir="LEFT" type="button">L</button>
+          <button class="dpad-btn right" data-dir="RIGHT" type="button">R</button>
+          <button class="dpad-btn down" data-dir="DOWN" type="button">D</button>
+        </div>
+
+        <div class="action-row">
+          <button id="pauseBtn" class="action-btn" type="button">Pause / Resume</button>
+          <button id="resetSeqBtn" class="action-btn" type="button">Reset Sequence</button>
+        </div>
+
+        <div id="statusMessage" class="status-msg">Connecting to server...</div>
+      </section>
+    </main>
+
+    <script src="./client.js"></script>
+  </body>
+</html>
