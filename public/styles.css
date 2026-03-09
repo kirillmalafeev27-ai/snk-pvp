@@ -231,6 +231,56 @@ body {
   box-shadow: 0 8px 13px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+.quiz-wrap {
+  width: min(860px, 100%);
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(59, 86, 189, 0.92), rgba(33, 52, 130, 0.92));
+  border: 1px solid rgba(196, 211, 255, 0.46);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.quiz-title {
+  font-family: "Russo One", sans-serif;
+  letter-spacing: 0.02em;
+  font-size: 0.95rem;
+  color: #ffd98c;
+}
+
+.quiz-question {
+  margin-top: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.quiz-options {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.quiz-option-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 9px 11px;
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+  color: #0d173d;
+  background: linear-gradient(180deg, #ffdf95, #deb658);
+  box-shadow: 0 7px 11px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.quiz-option-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.quiz-meta {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
 .status-msg {
   width: min(820px, 100%);
   text-align: center;
@@ -244,6 +294,10 @@ body {
 button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.hidden {
+  display: none;
 }
 
 @media (max-width: 720px) {
