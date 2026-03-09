@@ -18,7 +18,7 @@
         <div class="title">Snake PvP Classroom</div>
         <div class="meta">
           <span id="phaseValue">Phase: waiting</span>
-          <span id="levelValue">Level 1/4</span>
+          <span id="levelValue">Level 1/5</span>
           <span id="seqValue">Sequence 0/6</span>
         </div>
       </header>
@@ -60,6 +60,13 @@
           <button id="pauseBtn" class="action-btn" type="button">Pause / Resume</button>
           <button id="resetSeqBtn" class="action-btn" type="button">Reset Sequence</button>
         </div>
+
+        <section id="quizWrap" class="quiz-wrap hidden">
+          <div class="quiz-title">Collision Task</div>
+          <div id="quizQuestion" class="quiz-question">Question will appear after snake collision.</div>
+          <div id="quizOptions" class="quiz-options"></div>
+          <div id="quizMeta" class="quiz-meta">Blue: waiting | Yellow: waiting</div>
+        </section>
 
         <div id="statusMessage" class="status-msg">Connecting to server...</div>
       </section>
