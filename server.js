@@ -13,7 +13,6 @@ const PANEL_H = 150;
 const PLAYFIELD = { x: 75, y: 76, w: WORLD_W - 150, h: WORLD_H - 240 };
 
 const snakeSize = 31;
-const fruitSize = snakeSize;
 const collisionRadius = 45;
 const baseSpeed = 3;
 const speedMin = 2;
@@ -32,48 +31,88 @@ const colors = {
 };
 
 const baseFruitTypes = [
-  { color: colors.red, effect: "grow", description: "er/es/sie" },
-  { color: colors.yellow, effect: "speed_up", description: "spiele" },
-  { color: colors.blue, effect: "slow_down", description: "du" },
-  { color: colors.purple, effect: "extra_life", description: "telefonierst" },
-  { color: colors.orange, effect: "invincible", description: "sammelt" },
-  { color: colors.pink, effect: "shrink", description: "ich" },
+  { color: colors.red, effect: "grow", description: "Ich" },
+  { color: colors.yellow, effect: "speed_up", description: "heisse" },
+  { color: colors.blue, effect: "slow_down", description: "Heinrich" },
+  { color: colors.purple, effect: "extra_life", description: "Mueller." },
+  { color: colors.orange, effect: "invincible", description: "heute" },
+  { color: colors.pink, effect: "shrink", description: "hier." },
 ];
 
+// 5 beginner levels with very simple phrase blocks.
 const levels = [
   {
-    sequence: [colors.pink, colors.blue, colors.yellow, colors.purple, colors.red, colors.orange],
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed,
-    description: ["und", "sehr", "bist", "sportlich", "stark", "Du"],
+    description: ["Ich", "heisse", "Heinrich", "Mueller.", "heute", "hier."],
   },
   {
-    sequence: [colors.orange, colors.red, colors.purple, colors.yellow, colors.blue, colors.pink],
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    snakeSpeed: baseSpeed + 1,
+    description: ["Mein", "Name", "ist", "Peter", "Hoffmann", "heute."],
+  },
+  {
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    snakeSpeed: baseSpeed + 2,
+    description: ["Ich", "komme", "aus", "Berlin", "in", "Deutschland."],
+  },
+  {
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    snakeSpeed: baseSpeed + 3,
+    description: ["Das", "ist", "Anna.", "Sie", "lernt", "Deutsch."],
+  },
+  {
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed + 4,
-    description: ["schicken", "chillt", "sie", "ihr", "wir", "grillen"],
+    description: ["Wir", "sind", "Freunde", "und", "spielen", "heute."],
+  },
+];
+
+const collisionQuestions = [
+  {
+    question: "Wie heisst die Hauptstadt von Deutschland?",
+    options: ["Berlin", "Hamburg", "Wien", "Bern"],
+    correctIndex: 0,
   },
   {
-    sequence: [colors.pink, colors.blue, colors.yellow, colors.purple, colors.red, colors.orange],
-    snakeSpeed: baseSpeed + 8,
-    description: [
-      "mit Tomaten",
-      "ernaehren moechte",
-      "mich frisch und gesund",
-      "koche ich Gerichte",
-      "und Bohnen",
-      "Wenn ich",
-    ],
+    question: "Was ist die groesste Stadt in Deutschland?",
+    options: ["Muenchen", "Berlin", "Koeln", "Bremen"],
+    correctIndex: 1,
   },
   {
-    sequence: [colors.pink, colors.blue, colors.yellow, colors.purple, colors.red, colors.orange],
-    snakeSpeed: baseSpeed + 10,
-    description: [
-      "frische Zutaten und",
-      "Pizza backen",
-      "zu Hause gemeinsam",
-      "verwenden wir immer",
-      "vermeiden viel Fett",
-      "Wenn wir",
-    ],
+    question: "Wie viele Bundeslaender hat Deutschland?",
+    options: ["14", "15", "16", "17"],
+    correctIndex: 2,
+  },
+  {
+    question: "Was ist der hoechste Berg in Deutschland?",
+    options: ["Brocken", "Zugspitze", "Feldberg", "Watzmann"],
+    correctIndex: 1,
+  },
+  {
+    question: "Wie heisst der laengste Fluss in Deutschland?",
+    options: ["Rhein", "Main", "Elbe", "Mosel"],
+    correctIndex: 0,
+  },
+  {
+    question: "Welche Stadt ist bekannt fuer ihr Oktoberfest?",
+    options: ["Stuttgart", "Dresden", "Muenchen", "Bonn"],
+    correctIndex: 2,
+  },
+  {
+    question: "Welches Meer liegt noerdlich von Deutschland?",
+    options: ["Nordsee", "Mittelmeer", "Schwarzes Meer", "Kaspisches Meer"],
+    correctIndex: 0,
+  },
+  {
+    question: "Welches Automodell kommt aus Deutschland?",
+    options: ["Volkswagen Golf", "Fiat 500", "Renault Clio", "Toyota Prius"],
+    correctIndex: 0,
+  },
+  {
+    question: "In welcher Stadt steht das Brandenburger Tor?",
+    options: ["Berlin", "Leipzig", "Frankfurt", "Duesseldorf"],
+    correctIndex: 0,
   },
 ];
 
@@ -129,6 +168,20 @@ function createPlayerState(id, renderColor, startPos, startDirection) {
   };
 }
 
+function createQuizState() {
+  return {
+    active: false,
+    id: "",
+    question: "",
+    options: [],
+    correctIndex: -1,
+    answers: {
+      blue: null,
+      yellow: null,
+    },
+  };
+}
+
 function resetPlayerState(player, startPos, startDirection) {
   player.selected = false;
   player.connected = false;
@@ -158,6 +211,9 @@ function createInitialState() {
     messageUntil: now + 10000,
     startTime: now,
     collisionEnabled: false,
+    quiz: createQuizState(),
+    quizCursor: 0,
+    quizCooldownUntil: 0,
     players: {
       blue: createPlayerState(
         "blue",
@@ -181,11 +237,18 @@ function setStatus(text, durationMs = 1800) {
 }
 
 function updateVelocity(player) {
-  if (state.phase !== "running" || !player.selected || player.lives <= 0) {
+  if (
+    state.phase !== "running"
+    || state.paused
+    || state.quiz.active
+    || !player.selected
+    || player.lives <= 0
+  ) {
     player.moveX = 0;
     player.moveY = 0;
     return;
   }
+
   if (player.direction === "UP") {
     player.moveX = 0;
     player.moveY = -player.speed;
@@ -231,6 +294,7 @@ function spawnLimitedFruit(gameState, currentFruits) {
   if (available.length === 0) {
     return null;
   }
+
   const type = available[randomInRange(0, available.length - 1)];
   return {
     pos: {
@@ -330,6 +394,7 @@ function bouncePlayer(player) {
   if (!player.snake.length) {
     return;
   }
+
   const head = { ...player.snake[0] };
   const push = 46;
   if (player.direction === "RIGHT") {
@@ -357,13 +422,117 @@ function canTakeDamage(player, now) {
 
 function applyDamage(player, now) {
   if (!canTakeDamage(player, now)) {
-    return;
+    return false;
   }
+
   player.lives = Math.max(0, player.lives - 1);
   bouncePlayer(player);
   if (player.lives <= 0) {
     player.moveX = 0;
     player.moveY = 0;
+  }
+  return true;
+}
+
+function startCollisionQuiz(now) {
+  if (state.quiz.active || now < state.quizCooldownUntil) {
+    return;
+  }
+
+  const question = collisionQuestions[state.quizCursor % collisionQuestions.length];
+  state.quizCursor += 1;
+  state.quiz = {
+    active: true,
+    id: `${now}-${state.quizCursor}`,
+    question: question.question,
+    options: [...question.options],
+    correctIndex: question.correctIndex,
+    answers: {
+      blue: null,
+      yellow: null,
+    },
+  };
+
+  bouncePlayer(state.players.blue);
+  bouncePlayer(state.players.yellow);
+  setStatus("Collision task: both players answer now.", 3600);
+}
+
+function finishCollisionQuiz() {
+  if (!state.quiz.active) {
+    return;
+  }
+
+  const blueAnswer = state.quiz.answers.blue;
+  const yellowAnswer = state.quiz.answers.yellow;
+  if (!blueAnswer || !yellowAnswer) {
+    return;
+  }
+
+  const now = Date.now();
+  const resultParts = [];
+
+  if (blueAnswer.correct) {
+    resultParts.push("Blue: correct");
+  } else if (applyDamage(state.players.blue, now)) {
+    resultParts.push("Blue: wrong (-1 life)");
+  } else {
+    resultParts.push("Blue: wrong (shielded)");
+  }
+
+  if (yellowAnswer.correct) {
+    resultParts.push("Yellow: correct");
+  } else if (applyDamage(state.players.yellow, now)) {
+    resultParts.push("Yellow: wrong (-1 life)");
+  } else {
+    resultParts.push("Yellow: wrong (shielded)");
+  }
+
+  state.quiz = createQuizState();
+  state.quizCooldownUntil = now + 1300;
+  state.players.blue.lastMoveAt = now + 250;
+  state.players.yellow.lastMoveAt = now + 250;
+  updateVelocity(state.players.blue);
+  updateVelocity(state.players.yellow);
+
+  setStatus(`Task result: ${resultParts.join(" | ")}`, 2800);
+}
+
+function handleQuizAnswer(clientId, optionIndex) {
+  if (!state.quiz.active) {
+    return;
+  }
+
+  const role = getRoleForClient(clientId);
+  if (role !== "blue" && role !== "yellow") {
+    return;
+  }
+  const player = state.players[role];
+  if (!player || player.clientId !== clientId) {
+    return;
+  }
+
+  const normalizedOption = Number(optionIndex);
+  if (!Number.isInteger(normalizedOption) || normalizedOption < 0 || normalizedOption >= state.quiz.options.length) {
+    return;
+  }
+
+  if (state.quiz.answers[role]) {
+    return;
+  }
+
+  state.quiz.answers[role] = {
+    optionIndex: normalizedOption,
+    correct: normalizedOption === state.quiz.correctIndex,
+    answeredAt: Date.now(),
+  };
+
+  const blueAnswered = Boolean(state.quiz.answers.blue);
+  const yellowAnswered = Boolean(state.quiz.answers.yellow);
+  if (blueAnswered && yellowAnswered) {
+    finishCollisionQuiz();
+  } else {
+    setStatus(`${role === "blue" ? "Blue" : "Yellow"} answered. Waiting for second player.`, 1800);
   }
 }
 
@@ -407,7 +576,13 @@ function checkFruitCollisionForPlayer(player, now) {
 }
 
 function updatePlayer(player, now) {
-  if (state.phase !== "running" || state.paused || !player.selected || player.lives <= 0) {
+  if (
+    state.phase !== "running"
+    || state.paused
+    || state.quiz.active
+    || !player.selected
+    || player.lives <= 0
+  ) {
     return;
   }
 
@@ -446,9 +621,10 @@ function updatePlayer(player, now) {
 }
 
 function handlePvpCollisions(now) {
-  if (!state.collisionEnabled) {
+  if (!state.collisionEnabled || state.quiz.active || now < state.quizCooldownUntil) {
     return;
   }
+
   const blue = state.players.blue;
   const yellow = state.players.yellow;
   if (!blue.selected || !yellow.selected || blue.lives <= 0 || yellow.lives <= 0) {
@@ -459,11 +635,8 @@ function handlePvpCollisions(now) {
   const yellowHitsBlue = hitOpponentBody(yellow, blue);
   const headToHead = distance(blue.snake[0], yellow.snake[0]) < snakeSize * 0.62;
 
-  if (blueHitsYellow || headToHead) {
-    applyDamage(blue, now);
-  }
-  if (yellowHitsBlue || headToHead) {
-    applyDamage(yellow, now);
+  if (blueHitsYellow || yellowHitsBlue || headToHead) {
+    startCollisionQuiz(now);
   }
 }
 
@@ -471,6 +644,7 @@ function startMatchIfReady() {
   if (!state.players.blue.selected || !state.players.yellow.selected || state.phase !== "waiting") {
     return;
   }
+
   state.phase = "running";
   state.paused = false;
   state.startTime = Date.now();
@@ -480,12 +654,15 @@ function startMatchIfReady() {
   state.pickedColors = [];
   state.fruitTypes = buildFruitTypes(0);
   state.fruits = spawnFruits(state);
+  state.quiz = createQuizState();
+  state.quizCooldownUntil = 0;
 
   for (const player of Object.values(state.players)) {
     player.speed = clamp(levels[0].snakeSpeed, speedMin, speedMax);
     player.lastMoveAt = Date.now();
     updateVelocity(player);
   }
+
   setStatus("Both players selected. Game started!", 2200);
 }
 
@@ -500,6 +677,8 @@ function resetMatch(reason) {
   state.fruits = [];
   state.startTime = now;
   state.collisionEnabled = false;
+  state.quiz = createQuizState();
+  state.quizCooldownUntil = 0;
 
   resetPlayerState(
     state.players.blue,
@@ -564,8 +743,7 @@ function assignColor(clientId, color) {
 
   if (color === "blue") {
     setStatus("Blue selected. Waiting for Yellow.");
-  }
-  if (color === "yellow") {
+  } else {
     setStatus("Yellow selected.");
   }
 
@@ -583,6 +761,22 @@ function serializePlayer(player) {
     speed: player.speed,
     lives: player.lives,
     invincible: Date.now() < player.invincibleUntil,
+  };
+}
+
+function buildQuizPayload() {
+  if (!state.quiz.active) {
+    return { active: false };
+  }
+  return {
+    active: true,
+    id: state.quiz.id,
+    question: state.quiz.question,
+    options: [...state.quiz.options],
+    answers: {
+      blueAnswered: Boolean(state.quiz.answers.blue),
+      yellowAnswered: Boolean(state.quiz.answers.yellow),
+    },
   };
 }
 
@@ -605,6 +799,7 @@ function buildStatePayload() {
       now: Date.now(),
       fruitTypes: state.fruitTypes,
       fruits: state.fruits.map((fruit) => ({ pos: fruit.pos, type: fruit.type })),
+      quiz: buildQuizPayload(),
       players: {
         blue: serializePlayer(state.players.blue),
         yellow: serializePlayer(state.players.yellow),
@@ -635,8 +830,13 @@ function handleInput(clientId, data) {
   if (role !== "blue" && role !== "yellow") {
     return;
   }
+
   const player = state.players[role];
   if (!player || player.clientId !== clientId) {
+    return;
+  }
+
+  if (state.quiz.active) {
     return;
   }
 
@@ -658,9 +858,9 @@ function handleDisconnect(clientId) {
   if (!client) {
     return;
   }
+
   const role = client.role;
   clients.delete(clientId);
-
   if (role === "blue" || role === "yellow") {
     resetMatch("A player disconnected. Select Blue then Yellow again.");
   }
@@ -673,15 +873,18 @@ function gameTick() {
       state.collisionEnabled = true;
     }
 
-    updatePlayer(state.players.blue, now);
-    updatePlayer(state.players.yellow, now);
-    handlePvpCollisions(now);
+    if (!state.quiz.active) {
+      updatePlayer(state.players.blue, now);
+      updatePlayer(state.players.yellow, now);
+      handlePvpCollisions(now);
+    }
 
     if (state.players.blue.lives <= 0 && state.players.yellow.lives <= 0) {
       state.phase = "finished";
       setStatus("Both snakes are out. Match finished.", 5000);
     }
   }
+
   broadcastState();
 }
 
@@ -701,7 +904,7 @@ function serveStatic(req, res) {
   const urlPath = (req.url || "/").split("?")[0];
   const normalizedPath = urlPath === "/" ? "/index.html" : urlPath;
   const unsafePath = path.normalize(normalizedPath).replace(/^([/\\])+/g, "");
-  const filePath = path.join(PUBLIC_DIR, unsafePath);
+  const filePath = path.resolve(PUBLIC_DIR, unsafePath);
 
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
@@ -748,6 +951,8 @@ wss.on("connection", (ws) => {
       assignColor(clientId, data.color);
     } else if (data.type === "input") {
       handleInput(clientId, data);
+    } else if (data.type === "quizAnswer") {
+      handleQuizAnswer(clientId, data.optionIndex);
     }
   });
 
