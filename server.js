@@ -42,9 +42,9 @@ const baseFruitTypes = [
 // 5 beginner levels with very simple phrase blocks.
 const levels = [
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    sequence: [colors.yellow, colors.red, colors.purple, colors.blue, colors.orange, colors.pink],
     snakeSpeed: baseSpeed,
-    description: ["Ich", "heisse", "Heinrich", "Mueller.", "heute", "hier."],
+    description: ["heisse", "Ich", "Mueller", "Heinrich", "heute", "hier"],
   },
   {
     sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
