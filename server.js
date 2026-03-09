@@ -11,6 +11,8 @@ const WORLD_W = 1350;
 const WORLD_H = 900;
 const PANEL_H = 150;
 const PLAYFIELD = { x: 75, y: 76, w: WORLD_W - 150, h: WORLD_H - 240 };
+const BLUE_START = { x: PLAYFIELD.x + 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 };
+const YELLOW_START = { x: PLAYFIELD.x + PLAYFIELD.w - 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 };
 
 const snakeSize = 31;
 const collisionRadius = 45;
@@ -31,30 +33,30 @@ const colors = {
 };
 
 const baseFruitTypes = [
-  { color: colors.red, effect: "grow", description: "Ich" },
-  { color: colors.yellow, effect: "speed_up", description: "heisse" },
-  { color: colors.blue, effect: "slow_down", description: "Heinrich" },
-  { color: colors.purple, effect: "extra_life", description: "Mueller." },
-  { color: colors.orange, effect: "invincible", description: "heute" },
-  { color: colors.pink, effect: "shrink", description: "hier." },
+  { color: colors.red, effect: "grow", description: "Rot" },
+  { color: colors.yellow, effect: "speed_up", description: "Gelb" },
+  { color: colors.blue, effect: "slow_down", description: "Blau" },
+  { color: colors.purple, effect: "extra_life", description: "Lila" },
+  { color: colors.orange, effect: "orange_bonus", description: "Orange" },
+  { color: colors.pink, effect: "shrink", description: "Rosa" },
 ];
 
-// 5 beginner levels with very simple phrase blocks.
+// 5 beginner main levels.
 const levels = [
   {
-    sequence: [colors.yellow, colors.red, colors.purple, colors.blue, colors.orange, colors.pink],
+    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed,
-    description: ["heisse", "Ich", "Mueller", "Heinrich", "heute", "hier"],
+    description: ["Ich", "heisse", "Heinrich", "Mueller.", "Ich", "lerne."],
   },
   {
     sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed + 1,
-    description: ["Mein", "Name", "ist", "Peter", "Hoffmann", "heute."],
+    description: ["Mein", "Name", "ist", "Peter", "Hoffmann.", "Hallo!"],
   },
   {
     sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed + 2,
-    description: ["Ich", "komme", "aus", "Berlin", "in", "Deutschland."],
+    description: ["Ich", "komme", "aus", "Berlin.", "Das", "ist gut."],
   },
   {
     sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
@@ -64,7 +66,7 @@ const levels = [
   {
     sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
     snakeSpeed: baseSpeed + 4,
-    description: ["Wir", "sind", "Freunde", "und", "spielen", "heute."],
+    description: ["Wir", "sind", "Freunde.", "Wir", "spielen", "heute."],
   },
 ];
 
@@ -121,7 +123,7 @@ const fruitLimits = {
   speed_up: 1,
   slow_down: 1,
   extra_life: 1,
-  invincible: 1,
+  orange_bonus: 1,
   shrink: 1,
 };
 
@@ -141,12 +143,12 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function buildFruitTypes(levelIndex) {
-  const level = levels[levelIndex];
-  return baseFruitTypes.map((item, i) => ({
-    ...item,
-    description: level.description[i],
-  }));
+function roleLabel(roleId) {
+  return roleId === "blue" ? "Blue" : "Yellow";
+}
+
+function buildFruitTypes() {
+  return baseFruitTypes.map((item) => ({ ...item }));
 }
 
 function createPlayerState(id, renderColor, startPos, startDirection) {
@@ -163,8 +165,10 @@ function createPlayerState(id, renderColor, startPos, startDirection) {
     moveY: 0,
     speed: baseSpeed,
     lives: 100,
-    invincibleUntil: 0,
     lastMoveAt: Date.now(),
+    currentLevel: 0,
+    pickedColors: [],
+    finishedTraining: false,
   };
 }
 
@@ -193,8 +197,24 @@ function resetPlayerState(player, startPos, startDirection) {
   player.moveY = 0;
   player.speed = baseSpeed;
   player.lives = 100;
-  player.invincibleUntil = 0;
   player.lastMoveAt = Date.now();
+  player.currentLevel = 0;
+  player.pickedColors = [];
+  player.finishedTraining = false;
+}
+
+function preparePlayerForMatch(player, startPos, startDirection) {
+  player.snake = [{ x: startPos.x, y: startPos.y }];
+  player.snakeLength = 10;
+  player.direction = startDirection;
+  player.moveX = 0;
+  player.moveY = 0;
+  player.speed = clamp(levels[0].snakeSpeed, speedMin, speedMax);
+  player.lives = 100;
+  player.lastMoveAt = Date.now();
+  player.currentLevel = 0;
+  player.pickedColors = [];
+  player.finishedTraining = false;
 }
 
 function createInitialState() {
@@ -202,10 +222,8 @@ function createInitialState() {
   return {
     phase: "waiting",
     paused: false,
-    currentLevel: 0,
-    correctSequence: [...levels[0].sequence],
-    pickedColors: [],
-    fruitTypes: buildFruitTypes(0),
+    levelCount: levels.length,
+    fruitTypes: buildFruitTypes(),
     fruits: [],
     message: "Waiting room: first choose Blue, then Yellow.",
     messageUntil: now + 10000,
@@ -215,20 +233,22 @@ function createInitialState() {
     quizCursor: 0,
     quizCooldownUntil: 0,
     players: {
-      blue: createPlayerState(
-        "blue",
-        colors.blueSnake,
-        { x: PLAYFIELD.x + 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 },
-        "RIGHT",
-      ),
-      yellow: createPlayerState(
-        "yellow",
-        colors.yellowSnake,
-        { x: PLAYFIELD.x + PLAYFIELD.w - 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 },
-        "LEFT",
-      ),
+      blue: createPlayerState("blue", colors.blueSnake, BLUE_START, "RIGHT"),
+      yellow: createPlayerState("yellow", colors.yellowSnake, YELLOW_START, "LEFT"),
     },
   };
+}
+
+function getPlayerLevelIndex(player) {
+  return clamp(player.currentLevel, 0, levels.length - 1);
+}
+
+function getTargetSequence(player) {
+  return levels[getPlayerLevelIndex(player)].sequence;
+}
+
+function getLevelDescription(player) {
+  return levels[getPlayerLevelIndex(player)].description;
 }
 
 function setStatus(text, durationMs = 1800) {
@@ -242,6 +262,7 @@ function updateVelocity(player) {
     || state.paused
     || state.quiz.active
     || !player.selected
+    || player.finishedTraining
     || player.lives <= 0
   ) {
     player.moveX = 0;
@@ -281,7 +302,14 @@ function changeSpeed(player, delta) {
 }
 
 function countFruitTypes(fruits) {
-  const count = { grow: 0, speed_up: 0, slow_down: 0, extra_life: 0, invincible: 0, shrink: 0 };
+  const count = {
+    grow: 0,
+    speed_up: 0,
+    slow_down: 0,
+    extra_life: 0,
+    orange_bonus: 0,
+    shrink: 0,
+  };
   for (const fruit of fruits) {
     count[fruit.type.effect] += 1;
   }
@@ -317,46 +345,55 @@ function spawnFruits(gameState) {
   return list;
 }
 
-function checkSequence() {
-  if (state.pickedColors.length !== state.correctSequence.length) {
-    return;
-  }
-
-  const ok = state.pickedColors.every((color, i) => color === state.correctSequence[i]);
-  state.pickedColors = [];
-  if (ok) {
-    setStatus("Great! Sequence complete.");
-    nextLevel();
-  } else {
-    setStatus("Wrong sequence. Try again.");
+function checkTrainingCompletion() {
+  const blue = state.players.blue;
+  const yellow = state.players.yellow;
+  if (
+    state.phase === "running"
+    && blue.selected
+    && yellow.selected
+    && blue.finishedTraining
+    && yellow.finishedTraining
+  ) {
+    state.phase = "finished";
+    setStatus("All players completed all 5 levels!", 6000);
+    blue.moveX = 0;
+    blue.moveY = 0;
+    yellow.moveX = 0;
+    yellow.moveY = 0;
   }
 }
 
-function nextLevel() {
-  state.currentLevel += 1;
-  if (state.currentLevel >= levels.length) {
-    state.phase = "finished";
-    setStatus("All levels complete!", 5000);
-    for (const player of Object.values(state.players)) {
-      player.moveX = 0;
-      player.moveY = 0;
-    }
+function checkPlayerSequenceProgress(player) {
+  if (player.finishedTraining) {
     return;
   }
 
-  state.correctSequence = [...levels[state.currentLevel].sequence];
-  state.fruitTypes = buildFruitTypes(state.currentLevel);
-  state.fruits = spawnFruits(state);
-
-  for (const player of Object.values(state.players)) {
-    if (!player.selected) {
-      continue;
-    }
-    player.speed = clamp(levels[state.currentLevel].snakeSpeed, speedMin, speedMax);
-    updateVelocity(player);
+  const target = getTargetSequence(player);
+  if (player.pickedColors.length < target.length) {
+    return;
   }
 
-  setStatus(`Level ${state.currentLevel + 1}`);
+  const ok = player.pickedColors.every((color, idx) => color === target[idx]);
+  player.pickedColors = [];
+  if (!ok) {
+    setStatus(`${roleLabel(player.id)}: wrong sequence. Try again.`, 1800);
+    return;
+  }
+
+  if (player.currentLevel >= levels.length - 1) {
+    player.finishedTraining = true;
+    player.moveX = 0;
+    player.moveY = 0;
+    setStatus(`${roleLabel(player.id)} finished all levels!`, 2200);
+  } else {
+    player.currentLevel += 1;
+    player.speed = clamp(levels[player.currentLevel].snakeSpeed, speedMin, speedMax);
+    updateVelocity(player);
+    setStatus(`${roleLabel(player.id)} -> level ${player.currentLevel + 1}`, 1800);
+  }
+
+  checkTrainingCompletion();
 }
 
 function checkWallCollision(head) {
@@ -394,7 +431,6 @@ function bouncePlayer(player) {
   if (!player.snake.length) {
     return;
   }
-
   const head = { ...player.snake[0] };
   const push = 46;
   if (player.direction === "RIGHT") {
@@ -416,15 +452,10 @@ function bouncePlayer(player) {
   player.snake[0] = head;
 }
 
-function canTakeDamage(player, now) {
-  return player.lives > 0 && now >= player.invincibleUntil;
-}
-
-function applyDamage(player, now) {
-  if (!canTakeDamage(player, now)) {
+function applyDamage(player) {
+  if (player.lives <= 0) {
     return false;
   }
-
   player.lives = Math.max(0, player.lives - 1);
   bouncePlayer(player);
   if (player.lives <= 0) {
@@ -447,14 +478,15 @@ function startCollisionQuiz(now) {
     question: question.question,
     options: [...question.options],
     correctIndex: question.correctIndex,
-    answers: {
-      blue: null,
-      yellow: null,
-    },
+    answers: { blue: null, yellow: null },
   };
 
   bouncePlayer(state.players.blue);
   bouncePlayer(state.players.yellow);
+  state.players.blue.moveX = 0;
+  state.players.blue.moveY = 0;
+  state.players.yellow.moveX = 0;
+  state.players.yellow.moveY = 0;
   setStatus("Collision task: both players answer now.", 3600);
 }
 
@@ -462,40 +494,36 @@ function finishCollisionQuiz() {
   if (!state.quiz.active) {
     return;
   }
-
   const blueAnswer = state.quiz.answers.blue;
   const yellowAnswer = state.quiz.answers.yellow;
   if (!blueAnswer || !yellowAnswer) {
     return;
   }
 
-  const now = Date.now();
-  const resultParts = [];
-
+  const parts = [];
   if (blueAnswer.correct) {
-    resultParts.push("Blue: correct");
-  } else if (applyDamage(state.players.blue, now)) {
-    resultParts.push("Blue: wrong (-1 life)");
+    parts.push("Blue: correct");
+  } else if (applyDamage(state.players.blue)) {
+    parts.push("Blue: wrong (-1 life)");
   } else {
-    resultParts.push("Blue: wrong (shielded)");
+    parts.push("Blue: wrong");
   }
 
   if (yellowAnswer.correct) {
-    resultParts.push("Yellow: correct");
-  } else if (applyDamage(state.players.yellow, now)) {
-    resultParts.push("Yellow: wrong (-1 life)");
+    parts.push("Yellow: correct");
+  } else if (applyDamage(state.players.yellow)) {
+    parts.push("Yellow: wrong (-1 life)");
   } else {
-    resultParts.push("Yellow: wrong (shielded)");
+    parts.push("Yellow: wrong");
   }
 
   state.quiz = createQuizState();
-  state.quizCooldownUntil = now + 1300;
-  state.players.blue.lastMoveAt = now + 250;
-  state.players.yellow.lastMoveAt = now + 250;
+  state.quizCooldownUntil = Date.now() + 1300;
+  state.players.blue.lastMoveAt = Date.now() + 250;
+  state.players.yellow.lastMoveAt = Date.now() + 250;
   updateVelocity(state.players.blue);
   updateVelocity(state.players.yellow);
-
-  setStatus(`Task result: ${resultParts.join(" | ")}`, 2800);
+  setStatus(`Task result: ${parts.join(" | ")}`, 2800);
 }
 
 function handleQuizAnswer(clientId, optionIndex) {
@@ -512,36 +540,34 @@ function handleQuizAnswer(clientId, optionIndex) {
     return;
   }
 
-  const normalizedOption = Number(optionIndex);
-  if (!Number.isInteger(normalizedOption) || normalizedOption < 0 || normalizedOption >= state.quiz.options.length) {
+  const normalized = Number(optionIndex);
+  if (!Number.isInteger(normalized) || normalized < 0 || normalized >= state.quiz.options.length) {
     return;
   }
-
   if (state.quiz.answers[role]) {
     return;
   }
 
   state.quiz.answers[role] = {
-    optionIndex: normalizedOption,
-    correct: normalizedOption === state.quiz.correctIndex,
+    optionIndex: normalized,
+    correct: normalized === state.quiz.correctIndex,
     answeredAt: Date.now(),
   };
 
-  const blueAnswered = Boolean(state.quiz.answers.blue);
-  const yellowAnswered = Boolean(state.quiz.answers.yellow);
-  if (blueAnswered && yellowAnswered) {
+  if (state.quiz.answers.blue && state.quiz.answers.yellow) {
     finishCollisionQuiz();
   } else {
-    setStatus(`${role === "blue" ? "Blue" : "Yellow"} answered. Waiting for second player.`, 1800);
+    setStatus(`${roleLabel(role)} answered. Waiting for second player.`, 1800);
   }
 }
 
-function checkFruitCollisionForPlayer(player, now) {
+function checkFruitCollisionForPlayer(player) {
   const newFruits = [];
   for (const fruit of state.fruits) {
     if (distance(player.snake[0], fruit.pos) < collisionRadius) {
-      state.pickedColors.push(fruit.type.color);
-      checkSequence();
+      player.pickedColors.push(fruit.type.color);
+      checkPlayerSequenceProgress(player);
+
       const effect = fruit.type.effect;
       if (effect === "grow") {
         player.snakeLength += 4;
@@ -554,9 +580,8 @@ function checkFruitCollisionForPlayer(player, now) {
       } else if (effect === "extra_life") {
         player.lives += 1;
         player.snakeLength += 4;
-      } else if (effect === "invincible") {
-        player.invincibleUntil = now + 5000;
-        player.snakeLength += 4;
+      } else if (effect === "orange_bonus") {
+        player.snakeLength += 2;
       } else if (effect === "shrink") {
         player.snakeLength = Math.max(player.snakeLength - 2, 5);
       }
@@ -581,6 +606,7 @@ function updatePlayer(player, now) {
     || state.paused
     || state.quiz.active
     || !player.selected
+    || player.finishedTraining
     || player.lives <= 0
   ) {
     return;
@@ -602,10 +628,10 @@ function updatePlayer(player, now) {
     player.snake.push({ ...player.snake[player.snake.length - 1] });
   }
 
-  checkFruitCollisionForPlayer(player, now);
+  checkFruitCollisionForPlayer(player);
 
   if (checkWallCollision(player.snake[0])) {
-    applyDamage(player, now);
+    applyDamage(player);
   }
 
   if (state.collisionEnabled) {
@@ -613,7 +639,7 @@ function updatePlayer(player, now) {
     if (selfCutIndex > 0) {
       player.snake = player.snake.slice(0, selfCutIndex);
       player.snakeLength = player.snake.length;
-      applyDamage(player, now);
+      applyDamage(player);
     }
   }
 
@@ -627,14 +653,20 @@ function handlePvpCollisions(now) {
 
   const blue = state.players.blue;
   const yellow = state.players.yellow;
-  if (!blue.selected || !yellow.selected || blue.lives <= 0 || yellow.lives <= 0) {
+  if (
+    !blue.selected
+    || !yellow.selected
+    || blue.finishedTraining
+    || yellow.finishedTraining
+    || blue.lives <= 0
+    || yellow.lives <= 0
+  ) {
     return;
   }
 
   const blueHitsYellow = hitOpponentBody(blue, yellow);
   const yellowHitsBlue = hitOpponentBody(yellow, blue);
   const headToHead = distance(blue.snake[0], yellow.snake[0]) < snakeSize * 0.62;
-
   if (blueHitsYellow || yellowHitsBlue || headToHead) {
     startCollisionQuiz(now);
   }
@@ -649,20 +681,18 @@ function startMatchIfReady() {
   state.paused = false;
   state.startTime = Date.now();
   state.collisionEnabled = false;
-  state.currentLevel = 0;
-  state.correctSequence = [...levels[0].sequence];
-  state.pickedColors = [];
-  state.fruitTypes = buildFruitTypes(0);
+  state.fruitTypes = buildFruitTypes();
   state.fruits = spawnFruits(state);
   state.quiz = createQuizState();
   state.quizCooldownUntil = 0;
 
-  for (const player of Object.values(state.players)) {
-    player.speed = clamp(levels[0].snakeSpeed, speedMin, speedMax);
-    player.lastMoveAt = Date.now();
-    updateVelocity(player);
-  }
+  preparePlayerForMatch(state.players.blue, BLUE_START, "RIGHT");
+  preparePlayerForMatch(state.players.yellow, YELLOW_START, "LEFT");
+  state.players.blue.selected = true;
+  state.players.yellow.selected = true;
 
+  updateVelocity(state.players.blue);
+  updateVelocity(state.players.yellow);
   setStatus("Both players selected. Game started!", 2200);
 }
 
@@ -670,26 +700,15 @@ function resetMatch(reason) {
   const now = Date.now();
   state.phase = "waiting";
   state.paused = false;
-  state.currentLevel = 0;
-  state.correctSequence = [...levels[0].sequence];
-  state.pickedColors = [];
-  state.fruitTypes = buildFruitTypes(0);
+  state.fruitTypes = buildFruitTypes();
   state.fruits = [];
   state.startTime = now;
   state.collisionEnabled = false;
   state.quiz = createQuizState();
   state.quizCooldownUntil = 0;
 
-  resetPlayerState(
-    state.players.blue,
-    { x: PLAYFIELD.x + 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 },
-    "RIGHT",
-  );
-  resetPlayerState(
-    state.players.yellow,
-    { x: PLAYFIELD.x + PLAYFIELD.w - 220, y: PLAYFIELD.y + PLAYFIELD.h / 2 },
-    "LEFT",
-  );
+  resetPlayerState(state.players.blue, BLUE_START, "RIGHT");
+  resetPlayerState(state.players.yellow, YELLOW_START, "LEFT");
 
   state.fruits = spawnFruits(state);
   setStatus(reason || "Waiting room: first choose Blue, then Yellow.", 5000);
@@ -746,11 +765,11 @@ function assignColor(clientId, color) {
   } else {
     setStatus("Yellow selected.");
   }
-
   startMatchIfReady();
 }
 
 function serializePlayer(player) {
+  const target = getTargetSequence(player);
   return {
     selected: player.selected,
     connected: player.connected,
@@ -760,7 +779,12 @@ function serializePlayer(player) {
     direction: player.direction,
     speed: player.speed,
     lives: player.lives,
-    invincible: Date.now() < player.invincibleUntil,
+    currentLevel: player.currentLevel,
+    maxLevel: levels.length,
+    pickedCount: player.pickedColors.length,
+    targetLength: target.length,
+    finishedTraining: player.finishedTraining,
+    levelDescription: getLevelDescription(player),
   };
 }
 
@@ -787,13 +811,7 @@ function buildStatePayload() {
       world: { width: WORLD_W, height: WORLD_H, panelHeight: PANEL_H, playfield: PLAYFIELD },
       phase: state.phase,
       paused: state.paused,
-      currentLevel: state.currentLevel,
       levelCount: levels.length,
-      sequence: {
-        picked: state.pickedColors.length,
-        total: state.correctSequence.length,
-        values: [...state.pickedColors],
-      },
       message: state.message,
       messageUntil: state.messageUntil,
       now: Date.now(),
@@ -836,7 +854,7 @@ function handleInput(clientId, data) {
     return;
   }
 
-  if (state.quiz.active) {
+  if (state.quiz.active || player.finishedTraining) {
     return;
   }
 
@@ -848,8 +866,8 @@ function handleInput(clientId, data) {
     state.paused = !state.paused;
     setStatus(state.paused ? "Paused by player." : "Resumed.", 1200);
   } else if (data.action === "reset_sequence") {
-    state.pickedColors = [];
-    setStatus("Sequence reset.", 1200);
+    player.pickedColors = [];
+    setStatus(`${roleLabel(role)} sequence reset.`, 1200);
   }
 }
 
@@ -858,7 +876,6 @@ function handleDisconnect(clientId) {
   if (!client) {
     return;
   }
-
   const role = client.role;
   clients.delete(clientId);
   if (role === "blue" || role === "yellow") {
@@ -878,13 +895,8 @@ function gameTick() {
       updatePlayer(state.players.yellow, now);
       handlePvpCollisions(now);
     }
-
-    if (state.players.blue.lives <= 0 && state.players.yellow.lives <= 0) {
-      state.phase = "finished";
-      setStatus("Both snakes are out. Match finished.", 5000);
-    }
   }
-
+  checkTrainingCompletion();
   broadcastState();
 }
 
