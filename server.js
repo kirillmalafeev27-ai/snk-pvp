@@ -33,40 +33,58 @@ const colors = {
 };
 
 const baseFruitTypes = [
-  { color: colors.red, effect: "grow", description: "Ich" },
-  { color: colors.yellow, effect: "speed_up", description: "heisse" },
-  { color: colors.blue, effect: "slow_down", description: "Heinrich" },
+  { color: colors.red, effect: "grow", description: "heisse" },
+  { color: colors.yellow, effect: "speed_up", description: "Ich" },
+  { color: colors.blue, effect: "slow_down", description: "mich" },
   { color: colors.purple, effect: "extra_life", description: "Mueller." },
-  { color: colors.orange, effect: "orange_bonus", description: "Ich" },
-  { color: colors.pink, effect: "shrink", description: "lerne." },
+  { color: colors.orange, effect: "orange_bonus", description: "heisst" },
+  { color: colors.pink, effect: "shrink", description: "Heinrich" },
 ];
 
-// 5 beginner main levels.
+// 7 levels: Sich vorstellen (A1). In each level:
+// 4 correct words + 2 distractors.
 const levels = [
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    // Ich heisse Heinrich Mueller.
+    sequence: [colors.yellow, colors.red, colors.pink, colors.purple],
     snakeSpeed: baseSpeed,
-    description: ["Ich", "heisse", "Heinrich", "Mueller.", "Ich", "lerne."],
+    description: ["heisse", "Ich", "mich", "Mueller.", "heisst", "Heinrich"],
   },
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    // Mein Name ist Peter.
+    sequence: [colors.orange, colors.red, colors.blue, colors.purple],
     snakeSpeed: baseSpeed + 1,
-    description: ["Mein", "Name", "ist", "Peter", "Hoffmann.", "Hallo!"],
+    description: ["Name", "Meine", "ist", "Peter.", "Mein", "bist"],
   },
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    // Ich komme aus Berlin.
+    sequence: [colors.blue, colors.yellow, colors.orange, colors.purple],
     snakeSpeed: baseSpeed + 2,
-    description: ["Ich", "komme", "aus", "Berlin.", "Das", "ist gut."],
+    description: ["in", "komme", "Ich", "Berlin.", "aus", "kommt"],
   },
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    // Sie lernt jetzt Deutsch.
+    sequence: [colors.blue, colors.pink, colors.red, colors.orange],
     snakeSpeed: baseSpeed + 3,
-    description: ["Das", "ist", "Anna.", "Sie", "lernt", "Deutsch."],
+    description: ["jetzt", "lernen", "Sie", "ihr", "Deutsch.", "lernt"],
   },
   {
-    sequence: [colors.red, colors.yellow, colors.blue, colors.purple, colors.orange, colors.pink],
+    // Wir sind gute Freunde.
+    sequence: [colors.yellow, colors.red, colors.orange, colors.purple],
     snakeSpeed: baseSpeed + 4,
-    description: ["Wir", "sind", "Freunde.", "Wir", "spielen", "heute."],
+    description: ["sind", "Wir", "ist", "Freunde.", "gute", "guten"],
+  },
+  {
+    // Wie heisst du denn?
+    sequence: [colors.blue, colors.pink, colors.red, colors.purple],
+    snakeSpeed: baseSpeed + 5,
+    description: ["du", "Wo", "Wie", "denn?", "heissest", "heisst"],
+  },
+  {
+    // Er wohnt in Deutschland.
+    sequence: [colors.purple, colors.yellow, colors.pink, colors.blue],
+    snakeSpeed: baseSpeed + 6,
+    description: ["aus", "wohnt", "Deutschland.", "Er", "wohnen", "in"],
   },
 ];
 
@@ -356,7 +374,7 @@ function checkTrainingCompletion() {
     && yellow.finishedTraining
   ) {
     state.phase = "finished";
-    setStatus("All players completed all 5 levels!", 6000);
+    setStatus("All players completed all 7 levels!", 6000);
     blue.moveX = 0;
     blue.moveY = 0;
     yellow.moveX = 0;
