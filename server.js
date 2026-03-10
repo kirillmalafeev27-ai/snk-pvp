@@ -33,12 +33,12 @@ const colors = {
 };
 
 const baseFruitTypes = [
-  { color: colors.red, effect: "grow", description: "Rot" },
-  { color: colors.yellow, effect: "speed_up", description: "Gelb" },
-  { color: colors.blue, effect: "slow_down", description: "Blau" },
-  { color: colors.purple, effect: "extra_life", description: "Lila" },
-  { color: colors.orange, effect: "orange_bonus", description: "Orange" },
-  { color: colors.pink, effect: "shrink", description: "Rosa" },
+  { color: colors.red, effect: "grow", description: "Ich" },
+  { color: colors.yellow, effect: "speed_up", description: "heisse" },
+  { color: colors.blue, effect: "slow_down", description: "Heinrich" },
+  { color: colors.purple, effect: "extra_life", description: "Mueller." },
+  { color: colors.orange, effect: "orange_bonus", description: "Ich" },
+  { color: colors.pink, effect: "shrink", description: "lerne." },
 ];
 
 // 5 beginner main levels.
