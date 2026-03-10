@@ -465,11 +465,9 @@ function drawBottomPanel(state, world) {
     panelTop + 56,
   );
 
-  const blueSentence = (blue.levelDescription || []).join(" ");
-  const yellowSentence = (yellow.levelDescription || []).join(" ");
   ctx.font = "700 17px Manrope";
-  ctx.fillText(`Blue words: ${blueSentence}`, world.width / 2 - 200, panelTop + 84);
-  ctx.fillText(`Yellow words: ${yellowSentence}`, world.width / 2 - 200, panelTop + 108);
+  ctx.fillText(`Blue sequence: ${formatSequenceText(blue)}`, world.width / 2 - 200, panelTop + 84);
+  ctx.fillText(`Yellow sequence: ${formatSequenceText(yellow)}`, world.width / 2 - 200, panelTop + 108);
 }
 
 function drawOverlayText(world, text, subText) {
