@@ -431,8 +431,8 @@ function drawFruits(state) {
   for (const fruit of state.fruits) {
     drawGlossyCircle(fruit.pos.x, fruit.pos.y, 15, fruit.type.color);
 
-    // Добавляем текст слова над фруктом в зависимости от роли игрока
-    const colorIndex = colorLegend.findIndex(c => c.color === fruit.type.color);
+    // Render the word above fruit for the current player's level.
+    const colorIndex = colorLegend.findIndex((c) => c.color === fruit.type.color);
     if (colorIndex !== -1) {
       let word = "";
       if (clientRole === "blue" && state.players.blue.levelDescription) {
@@ -458,18 +458,17 @@ function drawBottomPanel(state, world) {
   const panelTop = world.height - world.panelHeight;
   const legendStartY = panelTop + 18;
   const legendSpacing = 20;
-
   for (let i = 0; i < colorLegend.length; i += 1) {
     const rowY = legendStartY + i * legendSpacing;
     const legend = colorLegend[i];
-    
-    // Рисуем цветной кружок
+
+    // Draw color circle.
     ctx.fillStyle = legend.color;
     ctx.beginPath();
     ctx.arc(42, rowY, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // Пишем слова для нужного игрока (или для обоих, если это зритель)
+    // Draw legend words depending on role.
     ctx.fillStyle = "#ffffff";
     ctx.font = "800 15px Manrope";
 
@@ -485,7 +484,7 @@ function drawBottomPanel(state, world) {
     ctx.fillText(label, 62, rowY + 5);
   }
 
-  // Рисуем статусы (жизни, скорость, уровень)
+  // Player status.
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 21px Manrope";
   ctx.fillText(
@@ -498,26 +497,6 @@ function drawBottomPanel(state, world) {
     world.width / 2 - 200,
     panelTop + 56,
   );
-}
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "800 21px Manrope";
-  ctx.fillText(
-    `Blue: lives ${blue.lives} speed ${blue.speed} level ${formatLevelText(blue)}`,
-    world.width / 2 - 200,
-    panelTop + 30,
-  );
-  ctx.fillText(
-    `Yellow: lives ${yellow.lives} speed ${yellow.speed} level ${formatLevelText(yellow)}`,
-    world.width / 2 - 200,
-    panelTop + 56,
-  );
-
-  const blueSentence = (blue.levelDescription || []).join(" ");
-  const yellowSentence = (yellow.levelDescription || []).join(" ");
-  ctx.font = "700 17px Manrope";
-  ctx.fillText(`Blue words: ${blueSentence}`, world.width / 2 - 200, panelTop + 84);
-  ctx.fillText(`Yellow words: ${yellowSentence}`, world.width / 2 - 200, panelTop + 108);
 }
 
 function drawOverlayText(world, text, subText) {
