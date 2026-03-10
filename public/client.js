@@ -430,6 +430,25 @@ function drawFruits(state) {
   }
   for (const fruit of state.fruits) {
     drawGlossyCircle(fruit.pos.x, fruit.pos.y, 15, fruit.type.color);
+
+    // Добавляем текст слова над фруктом в зависимости от роли игрока
+    const colorIndex = colorLegend.findIndex(c => c.color === fruit.type.color);
+    if (colorIndex !== -1) {
+      let word = "";
+      if (clientRole === "blue" && state.players.blue.levelDescription) {
+        word = state.players.blue.levelDescription[colorIndex];
+      } else if (clientRole === "yellow" && state.players.yellow.levelDescription) {
+        word = state.players.yellow.levelDescription[colorIndex];
+      }
+
+      if (word) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 13px Manrope";
+        ctx.textAlign = "center";
+        ctx.fillText(word, fruit.pos.x, fruit.pos.y - 18);
+        ctx.textAlign = "left";
+      }
+    }
   }
 }
 
@@ -440,17 +459,46 @@ function drawBottomPanel(state, world) {
   const legendStartY = panelTop + 18;
   const legendSpacing = 20;
 
-  ctx.font = "800 44px Manrope";
   for (let i = 0; i < colorLegend.length; i += 1) {
     const rowY = legendStartY + i * legendSpacing;
     const legend = colorLegend[i];
+    
+    // Рисуем цветной кружок
     ctx.fillStyle = legend.color;
     ctx.beginPath();
     ctx.arc(42, rowY, 10, 0, Math.PI * 2);
     ctx.fill();
+
+    // Пишем слова для нужного игрока (или для обоих, если это зритель)
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(legend.label, 62, rowY + 8);
+    ctx.font = "800 15px Manrope";
+
+    let label = legend.label;
+    if (clientRole === "blue" && blue.levelDescription) {
+      label = blue.levelDescription[i] || legend.label;
+    } else if (clientRole === "yellow" && yellow.levelDescription) {
+      label = yellow.levelDescription[i] || legend.label;
+    } else if (clientRole === "spectator" && blue.levelDescription && yellow.levelDescription) {
+      label = `B: ${blue.levelDescription[i] || "-"}  |  Y: ${yellow.levelDescription[i] || "-"}`;
+    }
+
+    ctx.fillText(label, 62, rowY + 5);
   }
+
+  // Рисуем статусы (жизни, скорость, уровень)
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "800 21px Manrope";
+  ctx.fillText(
+    `Blue: lives ${blue.lives} speed ${blue.speed} level ${formatLevelText(blue)}`,
+    world.width / 2 - 200,
+    panelTop + 30,
+  );
+  ctx.fillText(
+    `Yellow: lives ${yellow.lives} speed ${yellow.speed} level ${formatLevelText(yellow)}`,
+    world.width / 2 - 200,
+    panelTop + 56,
+  );
+}
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 21px Manrope";
@@ -465,9 +513,11 @@ function drawBottomPanel(state, world) {
     panelTop + 56,
   );
 
+  const blueSentence = (blue.levelDescription || []).join(" ");
+  const yellowSentence = (yellow.levelDescription || []).join(" ");
   ctx.font = "700 17px Manrope";
-  ctx.fillText(`Blue sequence: ${formatSequenceText(blue)}`, world.width / 2 - 200, panelTop + 84);
-  ctx.fillText(`Yellow sequence: ${formatSequenceText(yellow)}`, world.width / 2 - 200, panelTop + 108);
+  ctx.fillText(`Blue words: ${blueSentence}`, world.width / 2 - 200, panelTop + 84);
+  ctx.fillText(`Yellow words: ${yellowSentence}`, world.width / 2 - 200, panelTop + 108);
 }
 
 function drawOverlayText(world, text, subText) {
