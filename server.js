@@ -43,48 +43,57 @@ const baseFruitTypes = [
 
 // 7 levels: Sich vorstellen (A1). In each level:
 // 4 correct words + 2 distractors.
+// 7 уровней: Модальные глаголы wollen и müssen (A1, для студента 22 лет)
+// В каждом: 4 правильных слова (подлежащее -> модальный глагол -> дополнение -> инфинитив) и 2 обманки
 const levels = [
   {
-    // Ich heiße Heinrich Müller.
-    sequence: [colors.yellow, colors.red, colors.pink, colors.purple],
+    // 1: Ich muss heute arbeiten. (Мне нужно сегодня работать.)
+    // Правильно: Ich (yellow) -> muss (orange) -> heute (red) -> arbeiten. (purple)
+    sequence: [colors.yellow, colors.orange, colors.red, colors.purple],
     snakeSpeed: baseSpeed,
-    description: ["heiße", "Ich", "mich", "Müller.", "heißt", "Heinrich"],
+    description: ["heute", "Ich", "müssen", "arbeiten.", "muss", "arbeite"],
   },
   {
-    // Mein Name ist Peter.
-    sequence: [colors.orange, colors.red, colors.blue, colors.purple],
+    // 2: Wir wollen Kaffee trinken. (Мы хотим выпить кофе.)
+    // Правильно: Wir (purple) -> wollen (pink) -> Kaffee (yellow) -> trinken. (red)
+    sequence: [colors.purple, colors.pink, colors.yellow, colors.red],
     snakeSpeed: baseSpeed + 1,
-    description: ["Name", "Meine", "ist", "Peter.", "Mein", "bist"],
+    description: ["trinken.", "Kaffee", "will", "Wir", "trinkt", "wollen"],
   },
   {
-    // Ich komme aus Berlin.
-    sequence: [colors.blue, colors.yellow, colors.orange, colors.purple],
+    // 3: Du musst Miete zahlen. (Тебе нужно платить за аренду.)
+    // Правильно: Du (yellow) -> musst (pink) -> Miete (blue) -> zahlen. (orange)
+    sequence: [colors.yellow, colors.pink, colors.blue, colors.orange],
     snakeSpeed: baseSpeed + 2,
-    description: ["in", "komme", "Ich", "Berlin.", "aus", "kommt"],
+    description: ["muss", "Du", "Miete", "zahlst", "zahlen.", "musst"],
   },
   {
-    // Sie lernt jetzt Deutsch.
-    sequence: [colors.blue, colors.pink, colors.red, colors.orange],
+    // 4: Er will Deutsch lernen. (Он хочет учить немецкий.)
+    // Правильно: Er (blue) -> will (red) -> Deutsch (yellow) -> lernen. (purple)
+    sequence: [colors.blue, colors.red, colors.yellow, colors.purple],
     snakeSpeed: baseSpeed + 3,
-    description: ["jetzt", "lernen", "Sie", "ihr", "Deutsch.", "lernt"],
+    description: ["will", "Deutsch", "Er", "lernen.", "wollen", "lernt"],
   },
   {
-    // Wir sind gute Freunde.
-    sequence: [colors.yellow, colors.red, colors.orange, colors.purple],
+    // 5: Ihr müsst jetzt gehen. (Вам (ребятам) нужно сейчас идти.)
+    // Правильно: Ihr (orange) -> müsst (blue) -> jetzt (red) -> gehen. (yellow)
+    sequence: [colors.orange, colors.blue, colors.red, colors.yellow],
     snakeSpeed: baseSpeed + 4,
-    description: ["sind", "Wir", "ist", "Freunde.", "gute", "guten"],
+    description: ["jetzt", "gehen.", "müsst", "geht", "Ihr", "müssen"],
   },
   {
-    // Wie heißt du denn?
-    sequence: [colors.blue, colors.pink, colors.red, colors.purple],
+    // 6: Sie wollen Pizza essen. (Они хотят съесть пиццу.)
+    // Правильно: Sie (orange) -> wollen (pink) -> Pizza (blue) -> essen. (yellow)
+    sequence: [colors.orange, colors.pink, colors.blue, colors.yellow],
     snakeSpeed: baseSpeed + 5,
-    description: ["du", "Wo", "Wie", "denn?", "heißest", "heißt"],
+    description: ["will", "essen.", "Pizza", "isst", "Sie", "wollen"],
   },
   {
-    // Er wohnt in Deutschland.
-    sequence: [colors.purple, colors.yellow, colors.pink, colors.blue],
+    // 7: Ich will Freunde treffen. (Я хочу встретиться с друзьями.)
+    // Правильно: Ich (purple) -> will (pink) -> Freunde (yellow) -> treffen. (red)
+    sequence: [colors.purple, colors.pink, colors.yellow, colors.red],
     snakeSpeed: baseSpeed + 6,
-    description: ["aus", "wohnt", "Deutschland.", "Er", "wohnen", "in"],
+    description: ["treffen.", "Freunde", "willst", "Ich", "treffe", "will"],
   },
 ];
 
